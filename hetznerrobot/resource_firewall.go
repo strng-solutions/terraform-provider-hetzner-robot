@@ -2,6 +2,7 @@ package hetznerrobot
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -13,6 +14,9 @@ func resourceFirewall() *schema.Resource {
 		ReadContext:   resourceFirewallRead,
 		UpdateContext: resourceFirewallUpdate,
 		DeleteContext: resourceFirewallDelete,
+		Importer: &schema.ResourceImporter{
+			StateContext: resourceFirewallImportState,
+		},
 		Schema: map[string]*schema.Schema{
 			"server_ip": {
 				Type:     schema.TypeString,
@@ -68,6 +72,42 @@ func resourceFirewall() *schema.Resource {
 			},
 		},
 	}
+}
+
+func resourceFirewallImportState(ctx context.Context, d *schema.ResourceData, m interface{}) ([]*schema.ResourceData, error) {
+	c := m.(HetznerRobotClient)
+
+	firewallID := d.Id()
+
+	firewall, err := c.getFirewall(ctx, firewallID)
+	if err != nil {
+		return nil, fmt.Errorf("could not find firewall with ID %s: %s", firewallID, err)
+	}
+
+	rules := make([]map[string]interface{}, 0)
+	for _, rule := range firewall.Rules.Input {
+		r := map[string]interface{}{
+			"name":      rule.Name,
+			"src_ip":    rule.SrcIP,
+			"src_port":  rule.SrcPort,
+			"dst_ip":    rule.DstIP,
+			"dst_port":  rule.DstPort,
+			"protocol":  rule.Protocol,
+			"tcp_flags": rule.TCPFlags,
+			"action":    rule.Action,
+		}
+		rules = append(rules, r)
+	}
+
+	d.Set("rule", rules)
+	d.Set("server_ip", firewall.IP)
+	d.Set("active", firewall.Status)
+	d.Set("whitelist_hos", firewall.WhitelistHetznerServices)
+	d.SetId(firewall.IP)
+
+	results := make([]*schema.ResourceData, 1)
+	results[0] = d
+	return results, nil
 }
 
 func resourceFirewallCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
