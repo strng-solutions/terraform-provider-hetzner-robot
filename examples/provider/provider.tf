@@ -13,7 +13,7 @@ provider "hetzner-robot" {
   password = "yourPasswordFromRobot"
 }
 
-resource "hetznerrobot_firewall" "firewall" {
+resource "hetzner-robot_firewall" "firewall" {
   server_ip     = "1.1.1.1"
   active        = true
   whitelist_hos = true
