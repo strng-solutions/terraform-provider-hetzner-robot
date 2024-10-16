@@ -73,7 +73,7 @@ func (c *HetznerRobotClient) updateVSwitch(ctx context.Context, id string, name 
 	data := url.Values{}
 	data.Set("vlan", strconv.Itoa(vlan))
 	data.Set("name", name)
-	_, err := c.makeAPICall(ctx, "POST", fmt.Sprintf("%s/vswitch/%s", c.url, id), data, []int{http.StatusOK, http.StatusAccepted})
+	_, err := c.makeAPICall(ctx, "POST", fmt.Sprintf("%s/vswitch/%s", c.url, id), data, []int{http.StatusOK, http.StatusCreated, http.StatusAccepted})
 	if err != nil {
 		return err
 	}
