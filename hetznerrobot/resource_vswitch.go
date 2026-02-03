@@ -27,7 +27,7 @@ func resourceVSwitch() *schema.Resource {
 			},
 			"vlan": {
 				Type:        schema.TypeInt,
-				Optional:    true,
+				Required:    true,
 				Description: "VLAN ID",
 			},
 			// computed / read-only fields
