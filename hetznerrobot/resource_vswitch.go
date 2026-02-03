@@ -22,7 +22,7 @@ func resourceVSwitch() *schema.Resource {
 		Schema: map[string]*schema.Schema{
 			"name": {
 				Type:        schema.TypeString,
-				Optional:    true,
+				Required:    true,
 				Description: "vSwitch name",
 			},
 			"vlan": {
