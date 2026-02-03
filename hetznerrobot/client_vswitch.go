@@ -105,9 +105,8 @@ func (c *HetznerRobotClient) removeVSwitchServers(ctx context.Context, id string
 }
 
 func (c *HetznerRobotClient) deleteVSwitch(ctx context.Context, id string) error {
-	now := time.Now()
 	data := url.Values{}
-	data.Set("cancellation_date", now.Format("2006-01-02"))
+	data.Set("cancellation_date", "now")
 	_, err := c.makeAPICall(ctx, "DELETE", fmt.Sprintf("%s/vswitch/%s", c.url, id), data, []int{http.StatusOK, http.StatusAccepted})
 	if err != nil {
 		return err
