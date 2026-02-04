@@ -48,7 +48,7 @@ func dataSshKey() *schema.Resource {
 func dataSourceSshKeyRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	c := meta.(HetznerRobotClient)
 
-	keyFingerprint := d.Id()
+	keyFingerprint := d.Get("fingerprint").(string)
 
 	key, err := c.getSshKey(ctx, keyFingerprint)
 	if err != nil {
@@ -61,6 +61,8 @@ func dataSourceSshKeyRead(ctx context.Context, d *schema.ResourceData, meta inte
 	d.Set("type", key.Type)
 	d.Set("size", key.Size)
 	d.Set("created_at", key.CreatedAt)
+
+	d.SetId(key.Fingerprint)
 
 	return diag.Diagnostics{}
 }
