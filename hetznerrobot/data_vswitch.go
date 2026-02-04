@@ -106,7 +106,7 @@ func dataSourceVSwitchRead(ctx context.Context, d *schema.ResourceData, meta int
 	vSwitchID := d.Id()
 	vSwitch, err := c.getVSwitch(ctx, vSwitchID)
 	if err != nil {
-		return diag.Errorf("Unable to find VSwitch with ID %d:\n\t %q", vSwitchID, err)
+		return diag.Errorf("Unable to find VSwitch with ID %s:\n\t %q", vSwitchID, err)
 	}
 
 	d.Set("name", vSwitch.Name)
