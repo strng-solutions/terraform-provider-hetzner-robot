@@ -11,6 +11,10 @@ type HetznerRobotServerResponse struct {
 	Server HetznerRobotServer `json:"server"`
 }
 
+type HetznerRobotServersResponse struct {
+	Server []HetznerRobotServer `json:"server"`
+}
+
 type HetznerRobotServerSubnet struct {
 	IP   string `json:"ip"`
 	Mask string `json:"mask"`
@@ -56,4 +60,35 @@ func (c *HetznerRobotClient) getServer(ctx context.Context, serverNumber int) (*
 		return nil, err
 	}
 	return &serverResponse.Server, nil
+}
+
+func (c *HetznerRobotClient) getServers(ctx context.Context) ([]HetznerRobotServer, error) {
+	res, err := c.makeAPICall(ctx, "GET", fmt.Sprintf("%s/server", c.url), nil, []int{http.StatusOK, http.StatusAccepted})
+	if err != nil {
+		return nil, err
+	}
+
+	var serverObjects []map[string]interface{}
+	if err = json.Unmarshal(res, &serverObjects); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal server objects: %w", err)
+	}
+
+	servers := make([]HetznerRobotServer, len(serverObjects))
+	for i, obj := range serverObjects {
+		serverData, ok := obj["server"].(map[string]interface{})
+		if !ok {
+			return nil, fmt.Errorf("invalid server object structure at index %d", i)
+		}
+
+		serverBytes, err := json.Marshal(serverData)
+		if err != nil {
+			return nil, fmt.Errorf("failed to marshal server data: %w", err)
+		}
+
+		if err := json.Unmarshal(serverBytes, &servers[i]); err != nil {
+			return nil, fmt.Errorf("failed to unmarshal server: %w", err)
+		}
+	}
+
+	return servers, nil
 }
