@@ -60,7 +60,7 @@ func dataSourceBootRead(ctx context.Context, d *schema.ResourceData, meta interf
 	serverID := d.Id()
 	boot, err := c.getBoot(ctx, serverID)
 	if err != nil {
-		return diag.Errorf("Unable to find Boot Profile for server ID %d:\n\t %q", serverID, err)
+		return diag.Errorf("Unable to find Boot Profile for server ID %s:\n\t %q", serverID, err)
 	}
 
 	d.Set("active_profile", boot.ActiveProfile)

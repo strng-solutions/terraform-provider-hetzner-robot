@@ -116,7 +116,7 @@ func resourceVSwitchImportState(ctx context.Context, d *schema.ResourceData, met
 	vSwitchID := d.Id()
 	vSwitch, err := c.getVSwitch(ctx, vSwitchID)
 	if err != nil {
-		return nil, fmt.Errorf("Unable to find VSwitch with ID %d:\n\t %q", vSwitchID, err)
+		return nil, fmt.Errorf("Unable to find VSwitch with ID %s:\n\t %q", vSwitchID, err)
 	}
 
 	d.Set("name", vSwitch.Name)

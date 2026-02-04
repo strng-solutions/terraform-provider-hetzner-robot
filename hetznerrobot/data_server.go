@@ -140,7 +140,7 @@ func dataSourceServerRead(ctx context.Context, d *schema.ResourceData, meta inte
 
 	server, err := c.getServer(ctx, serverNumber)
 	if err != nil {
-		return diag.Errorf("Unable to find Server with IP %s:\n\t %q", serverNumber, err)
+		return diag.Errorf("Unable to find Server with IP %d:\n\t %q", serverNumber, err)
 	}
 	d.Set("datacenter", server.DataCenter)
 	d.Set("is_cancelled", server.Cancelled)
