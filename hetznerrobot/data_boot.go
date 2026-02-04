@@ -2,6 +2,8 @@ package hetznerrobot
 
 import (
 	"context"
+	"strconv"
+
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
@@ -15,11 +17,6 @@ func dataBoot() *schema.Resource {
 				Type:        schema.TypeString, // Enum should be better (linux/rescue/...)
 				Computed:    true,
 				Description: "Active boot profile",
-			},
-			"architecture": {
-				Type:        schema.TypeString, // Enum should be better (amd64/...)
-				Computed:    true,
-				Description: "Active Architecture",
 			},
 			"ipv4_address": {
 				Type:        schema.TypeString,
@@ -57,20 +54,23 @@ func dataBoot() *schema.Resource {
 func dataSourceBootRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	c := meta.(HetznerRobotClient)
 
-	serverID := d.Id()
-	boot, err := c.getBoot(ctx, serverID)
+	serverNumber, err := strconv.Atoi(d.Id())
 	if err != nil {
-		return diag.Errorf("Unable to find Boot Profile for server ID %s:\n\t %q", serverID, err)
+		return diag.FromErr(err)
+	}
+
+	boot, err := c.getBoot(ctx, serverNumber)
+	if err != nil {
+		return diag.Errorf("Unable to find Boot Profile for server ID %d:\n\t %q", serverNumber, err)
 	}
 
 	d.Set("active_profile", boot.ActiveProfile)
-	d.Set("architecture", boot.Architecture)
 	d.Set("ipv4_address", boot.ServerIPv4)
 	d.Set("ipv6_network", boot.ServerIPv6)
 	d.Set("language", boot.Language)
 	d.Set("operating_system", boot.OperatingSystem)
 	d.Set("password", boot.Password)
-	d.SetId(serverID)
+	d.SetId(strconv.Itoa(serverNumber))
 
 	// Warning or errors can be collected in a slice type
 	var diags diag.Diagnostics
