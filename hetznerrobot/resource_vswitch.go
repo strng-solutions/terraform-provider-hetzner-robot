@@ -5,8 +5,68 @@ import (
 	"fmt"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"sort"
 	"strconv"
 )
+
+// flattenVSwitchServers maps API fields to Terraform schema keys. Sort a copy
+// by server number to keep the list stable when the API returns a different order.
+func flattenVSwitchServers(servers []HetznerRobotVSwitchServer) []map[string]interface{} {
+	sorted := append([]HetznerRobotVSwitchServer(nil), servers...)
+	sort.Slice(sorted, func(i, j int) bool { return sorted[i].ServerNumber < sorted[j].ServerNumber })
+	out := make([]map[string]interface{}, len(sorted))
+	for i, server := range sorted {
+		out[i] = map[string]interface{}{
+			"server_number":   server.ServerNumber,
+			"server_ip":       server.ServerIP,
+			"server_ipv6_net": server.ServerIPv6Net,
+			"status":          server.Status,
+		}
+	}
+	return out
+}
+
+func flattenVSwitchSubnets(subnets []HetznerRobotVSwitchSubnet) []map[string]interface{} {
+	out := make([]map[string]interface{}, len(subnets))
+	for i, subnet := range subnets {
+		out[i] = map[string]interface{}{"ip": subnet.IP, "mask": subnet.Mask, "gateway": subnet.Gateway}
+	}
+	return out
+}
+
+func flattenVSwitchCloudNetworks(networks []HetznerRobotVSwitchCloudNetwork) []map[string]interface{} {
+	out := make([]map[string]interface{}, len(networks))
+	for i, network := range networks {
+		out[i] = map[string]interface{}{"id": network.ID, "ip": network.IP, "mask": network.Mask, "gateway": network.Gateway}
+	}
+	return out
+}
+
+// The resource servers attribute is a configurable TypeList, so retain its
+// existing order. Newly discovered members are appended in server-number order.
+func flattenVSwitchResourceServers(servers []HetznerRobotVSwitchServer, previous []interface{}) []map[string]interface{} {
+	sorted := flattenVSwitchServers(servers)
+	byNumber := make(map[int]map[string]interface{}, len(sorted))
+	for _, server := range sorted {
+		byNumber[server["server_number"].(int)] = server
+	}
+	out := make([]map[string]interface{}, 0, len(sorted))
+	for _, value := range previous {
+		number := value.(map[string]interface{})["server_number"].(int)
+		if server, ok := byNumber[number]; ok {
+			out = append(out, server)
+			delete(byNumber, number)
+		}
+	}
+	for _, server := range sorted {
+		number := server["server_number"].(int)
+		if _, ok := byNumber[number]; ok {
+			out = append(out, server)
+			delete(byNumber, number)
+		}
+	}
+	return out
+}
 
 func resourceVSwitch() *schema.Resource {
 	return &schema.Resource{
@@ -122,9 +182,9 @@ func resourceVSwitchImportState(ctx context.Context, d *schema.ResourceData, met
 	d.Set("name", vSwitch.Name)
 	d.Set("vlan", vSwitch.Vlan)
 	d.Set("is_cancelled", vSwitch.Cancelled)
-	d.Set("servers", vSwitch.Server)
-	d.Set("subnets", vSwitch.Subnet)
-	d.Set("cloud_networks", vSwitch.CloudNetwork)
+	d.Set("servers", flattenVSwitchResourceServers(vSwitch.Server, d.Get("servers").([]interface{})))
+	d.Set("subnets", flattenVSwitchSubnets(vSwitch.Subnet))
+	d.Set("cloud_networks", flattenVSwitchCloudNetworks(vSwitch.CloudNetwork))
 
 	results := make([]*schema.ResourceData, 1)
 	results[0] = d
@@ -142,9 +202,9 @@ func resourceVSwitchCreate(ctx context.Context, d *schema.ResourceData, meta int
 	}
 
 	d.Set("is_cancelled", vSwitch.Cancelled)
-	d.Set("servers", vSwitch.Server)
-	d.Set("subnets", vSwitch.Subnet)
-	d.Set("cloud_networks", vSwitch.CloudNetwork)
+	d.Set("servers", flattenVSwitchResourceServers(vSwitch.Server, d.Get("servers").([]interface{})))
+	d.Set("subnets", flattenVSwitchSubnets(vSwitch.Subnet))
+	d.Set("cloud_networks", flattenVSwitchCloudNetworks(vSwitch.CloudNetwork))
 	d.SetId(strconv.Itoa(vSwitch.ID))
 
 	// Warning or errors can be collected in a slice type
@@ -164,10 +224,10 @@ func resourceVSwitchRead(ctx context.Context, d *schema.ResourceData, meta inter
 
 	d.Set("name", vSwitch.Name)
 	d.Set("vlan", vSwitch.Vlan)
-	d.Set("cancelled", vSwitch.Cancelled)
-	d.Set("servers", vSwitch.Server)
-	d.Set("subnets", vSwitch.Subnet)
-	d.Set("cloud_networks", vSwitch.CloudNetwork)
+	d.Set("is_cancelled", vSwitch.Cancelled)
+	d.Set("servers", flattenVSwitchResourceServers(vSwitch.Server, d.Get("servers").([]interface{})))
+	d.Set("subnets", flattenVSwitchSubnets(vSwitch.Subnet))
+	d.Set("cloud_networks", flattenVSwitchCloudNetworks(vSwitch.CloudNetwork))
 
 	// Warning or errors can be collected in a slice type
 	var diags diag.Diagnostics

@@ -112,9 +112,9 @@ func dataSourceVSwitchRead(ctx context.Context, d *schema.ResourceData, meta int
 	d.Set("name", vSwitch.Name)
 	d.Set("vlan", vSwitch.Vlan)
 	d.Set("is_cancelled", vSwitch.Cancelled)
-	d.Set("servers", vSwitch.Server)
-	d.Set("subnets", vSwitch.Subnet)
-	d.Set("cloud_networks", vSwitch.CloudNetwork)
+	d.Set("servers", flattenVSwitchServers(vSwitch.Server))
+	d.Set("subnets", flattenVSwitchSubnets(vSwitch.Subnet))
+	d.Set("cloud_networks", flattenVSwitchCloudNetworks(vSwitch.CloudNetwork))
 	d.SetId(vSwitchID)
 
 	// Warning or errors can be collected in a slice type
